@@ -1,7 +1,9 @@
 const express = require("express");
-const router = express.Router();
-
 const Department = require("../models/Department");
+const Product = require("../models/Product");
+const Category = require("../models/Category");
+
+const router = express.Router();
 
 // Create:
 router.post("/department/create", async (req, res) => {
