@@ -7,6 +7,8 @@ const mongoose = require('mongoose');
 const departmentRoutes = require('./routes/department');
 const categoryRoutes = require('./routes/category');
 const productRoutes = require('./routes/product');
+const userRoutes = require('./routes/user');
+const reviewRoutes = require('./routes/review');
 
 const app = express();
 app.use(formidableMiddleware());
@@ -30,6 +32,10 @@ app.use(departmentRoutes);
 app.use(categoryRoutes);
 
 app.use(productRoutes);
+
+app.use(userRoutes);
+
+app.use(reviewRoutes);
 
 app.all('*', function(req, res) {
   res.json({ message: 'all routes' });
