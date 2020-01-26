@@ -1,15 +1,15 @@
-const express = require("express");
-const Department = require("../models/Department");
-const Product = require("../models/Product");
-const Category = require("../models/Category");
+const express = require('express');
+const Department = require('../models/Department');
+const Product = require('../models/Product');
+const Category = require('../models/Category');
 
 const router = express.Router();
 
 // Create:
-router.post("/department/create", async (req, res) => {
+router.post('/department/create', async (req, res) => {
   try {
     const newDepartment = new Department({
-      title: req.fields.title
+      title: req.fields.title,
     });
 
     await newDepartment.save();
@@ -21,14 +21,14 @@ router.post("/department/create", async (req, res) => {
 });
 
 // Read:
-router.get("/department", async (req, res) => {
+router.get('/department', async (req, res) => {
   try {
     const listDepartment = await Department.find();
 
     if (listDepartment.length > 0) {
       return res.json(listDepartment);
     } else {
-      return res.status(400).json({ message: "No department found" });
+      return res.status(400).json({ message: 'No department found' });
     }
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -36,12 +36,12 @@ router.get("/department", async (req, res) => {
 });
 
 // Update:
-router.post("/department/update", async (req, res) => {
+router.post('/department/update', async (req, res) => {
   try {
-    const departmentToUpdate = await Department.findById(req.query._id);
+    const departmentToUpdate = await Department.findById(req.query.id);
 
     if (!departmentToUpdate) {
-      return res.status(400).json({ message: "Department not found" });
+      return res.status(400).json({ message: 'Department not found' });
     } else {
       departmentToUpdate.title = req.fields.title;
 
@@ -55,12 +55,33 @@ router.post("/department/update", async (req, res) => {
 });
 
 // Delete:
-// router.post("/department/delete", async (req, res) => {
-//   try {
-//     const departmentToDelete = await Department.findOne(req.query.id);
-//   } catch (error) {
-//     return res.status(500).json({ message: error.message });
-//   }
-// });
+router.post('/department/delete', async (req, res) => {
+  try {
+    const departmentToDelete = await Department.findById(req.query.id);
+
+    if (departmentToDelete) {
+      const categoriesToDelete = await Category.find({ department: departmentToDelete });
+
+      if (categoriesToDelete) {
+        const productsToDelete = await Product.find({ category: categoriesToDelete });
+
+        productsToDelete.forEach(product => {
+          product.remove();
+        });
+      }
+      categoriesToDelete.forEach(category => {
+        category.remove();
+      });
+
+      departmentToDelete.remove();
+
+      return res.json({ message: 'Department removed' });
+    } else {
+      return res.status(400).json({ message: 'No department found' });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
 
 module.exports = router;

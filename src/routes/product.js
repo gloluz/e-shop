@@ -1,18 +1,18 @@
-const express = require("express");
-const Product = require("../models/Product");
-const Category = require("../models/Category");
-const Department = require("../models/Department");
+const express = require('express');
+const Product = require('../models/Product');
+const Category = require('../models/Category');
+const Department = require('../models/Department');
 
 const router = express.Router();
 
 // Create:
-router.post("/product/create", async (req, res) => {
+router.post('/product/create', async (req, res) => {
   try {
     const newProduct = new Product({
       title: req.fields.title,
       description: req.fields.description,
       price: req.fields.price,
-      category: req.fields.category
+      category: req.fields.category,
     });
 
     await newProduct.save();
@@ -24,34 +24,85 @@ router.post("/product/create", async (req, res) => {
 });
 
 // Read:
-router.get("/product", async (req, res) => {
+router.get('/product', async (req, res) => {
   try {
-    let products = await Product.find().populate("category");
+    const query = {};
 
-    if (req.query.category && req.query.title) {
-      const regexp = new RegExp(req.query.title, "i");
-      const searchProduct = await Product.find({ title: regexp });
-
-      return res.json(searchProduct);
+    if (req.query.title) {
+      query.title = new RegExp(req.query.title, 'i');
     }
 
-    if (req.query.priceMin >= 100) {
-      products = await Product.find({ price: { $gte: 100 } });
+    if (req.query.category) {
+      query.category = req.query.category;
+    }
 
+    if (req.query.priceMin) {
+      query.price = {};
+      query.price.$gte = req.query.priceMin;
+    }
+
+    if (req.query.priceMax) {
+      if (query.price) {
+        query.price.$lte = req.query.priceMax;
+      } else {
+        query.price = { $lte: req.query.priceMax };
+      }
+    }
+
+    const search = Product.find(query).populate('category');
+
+    if (req.query.sort === 'price-asc') {
+      search.sort({ price: 1 });
+    } else if (req.query.sort === 'price-desc') {
+      search.sort({ price: -1 });
+    }
+
+    const products = await search;
+
+    if (products.length > 0) {
       return res.json(products);
+    } else {
+      return res.status(400).json({ message: 'Product not found' });
     }
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
 
-    if (req.query.PriceMax <= 500 && req.query.category) {
-      products = await Product.find({ price: { $lte: 500 } });
+// Update:
+router.post('/product/update', async (req, res) => {
+  try {
+    const productToUpdate = await Product.findById(req.query.id);
 
-      return res.json(products);
+    if (!productToUpdate) {
+      return res.status(400).json({ message: 'Product not found' });
+    } else {
+      productToUpdate.title = req.fields.title;
+      productToUpdate.description = req.fields.description;
+      productToUpdate.price = req.fields.price;
+      productToUpdate.category = req.fields.category;
+
+      await productToUpdate.save();
+
+      return res.json(productToUpdate);
     }
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
 
-    // if (products.length > 0) {
-    //   return res.json(products);
-    // } else {
-    //   return res.status(400).json({ message: "Product not found" });
-    // }
+// Delete:
+router.post('/product/delete', async (req, res) => {
+  try {
+    const productToDelete = await Product.findById(req.query.id);
+
+    if (productToDelete) {
+      productToDelete.remove();
+
+      return res.json({ message: 'Product removed' });
+    } else {
+      return res.status(400).json({ message: 'No product found' });
+    }
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
